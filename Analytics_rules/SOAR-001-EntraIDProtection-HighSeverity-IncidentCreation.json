@@ -1,0 +1,26 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "workspace": {
+            "type": "string"
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+            "apiVersion": "2022-04-01-preview",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/7b2d4e91-5c3a-4f68-a1d0-9e8f6c2b3a14')]",
+            "kind": "MicrosoftSecurityIncidentCreation",
+            "properties": {
+                "displayName": "SOAR-001 - Create incidents from High severity Entra ID Protection alerts",
+                "description": "Creates incidents from High severity alerts raised by Microsoft Entra ID Protection (for example, users flagged as high risk). These incidents trigger the SOAR-001 automation rule.",
+                "enabled": true,
+                "productFilter": "Azure Active Directory Identity Protection",
+                "severitiesFilter": [
+                    "High"
+                ]
+            }
+        }
+    ]
+}
