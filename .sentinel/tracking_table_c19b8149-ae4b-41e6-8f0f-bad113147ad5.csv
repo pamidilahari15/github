@@ -1,7 +1,8 @@
 FileName, CommitSha
-Playbooks/SOAR-001-Reset-Entra-ID-Password.json,2af1cf74a92263070d261dd35c56826f19d34904
+Automation_rules/SOAR-001-Reset-Entra-ID-Password-Incident-Trigger.json,58bc541db53de5158e7e972f9e2fb031ef398290
+Analytics_rules/UC-001-Identity-PasswordSpray-EntraID.json,1dbe51d2e1930192d661cbb849a4c2d10954d435
 Playbooks/SOAR-001-Reset-Entra-ID-Password.parameters.json,f3bbd84d3b8e05162aca29aae4f7d641ffcc70e1
 Automation_rules/SampleAutomationRule.json,38afd7cd8dab689e2fce7fb15f79201494658a6d
-Analytics_rules/UC-001-Identity-PasswordSpray-EntraID.json,1dbe51d2e1930192d661cbb849a4c2d10954d435
+Playbooks/SOAR-001-Reset-Entra-ID-Password.json,2af1cf74a92263070d261dd35c56826f19d34904
 Analytics_rules/SOAR-001-EntraIDProtection-HighSeverity-IncidentCreation.json,8fd25493faa4dbf0b4ecc65048589d347cb3017e
 
