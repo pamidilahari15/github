@@ -38,8 +38,11 @@ $graphPermissions     = @(
 )
 
 function Invoke-GraphRest {
-    param([string]$Method, [string]$Url, $Body)
+    # az is a .cmd file on Windows: keep ( ) & out of arguments and pass query options separately.
+    param([string]$Method, [string]$Url, $Body, [string[]]$QueryParameters)
+    $ErrorActionPreference = 'Continue'
     $arguments = @('rest', '--method', $Method, '--url', $Url, '--headers', 'Content-Type=application/json')
+    if ($QueryParameters) { $arguments += @('--url-parameters') + $QueryParameters }
     if ($null -ne $Body) {
         $tmp = New-TemporaryFile
         try {
@@ -65,7 +68,8 @@ if (-not $principalId) { throw "Playbook '$PlaybookName' not found or has no man
 Write-Host "Playbook managed identity: $principalId"
 
 # 1. Microsoft Graph application permissions
-$graphSp = Invoke-GraphRest GET "https://graph.microsoft.com/v1.0/servicePrincipals(appId='$graphAppId')?`$select=id,appRoles"
+$graphSp = (Invoke-GraphRest GET 'https://graph.microsoft.com/v1.0/servicePrincipals' -QueryParameters "`$filter=appId eq '$graphAppId'", '$select=id,appRoles').value | Select-Object -First 1
+if (-not $graphSp) { throw 'Microsoft Graph service principal not found.' }
 $existing = (Invoke-GraphRest GET "https://graph.microsoft.com/v1.0/servicePrincipals/$principalId/appRoleAssignments").value
 foreach ($permission in $graphPermissions) {
     $role = $graphSp.appRoles | Where-Object { $_.value -eq $permission -and $_.allowedMemberTypes -contains 'Application' }
@@ -83,7 +87,7 @@ foreach ($permission in $graphPermissions) {
 }
 
 # 2. User Administrator directory role
-$roleAssignments = (Invoke-GraphRest GET "https://graph.microsoft.com/v1.0/roleManagement/directory/roleAssignments?`$filter=principalId eq '$principalId'").value
+$roleAssignments = (Invoke-GraphRest GET 'https://graph.microsoft.com/v1.0/roleManagement/directory/roleAssignments' -QueryParameters "`$filter=principalId eq '$principalId'").value
 if ($roleAssignments | Where-Object { $_.roleDefinitionId -eq $userAdminTemplateId }) {
     Write-Host 'User Administrator role already assigned.'
 }
