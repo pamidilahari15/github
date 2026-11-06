@@ -11,9 +11,10 @@
          Microsoft Sentinel service principal, so automation rules can run the playbook
 
     Run it after the playbook is deployed and BEFORE the automation rule is deployed.
-    Requires Azure CLI, signed in as an account that can grant admin consent and assign
-    directory roles (Privileged Role Administrator or Global Administrator) and that has
-    Owner / User Access Administrator on the resource group.
+    Requires Azure CLI.
+      - Azure steps (3, 4) need Owner / User Access Administrator on the resource group.
+      - Entra steps (1, 2) need Privileged Role Administrator or Global Administrator.
+    If one account cannot do both, run the script twice with -SkipEntra and -SkipAzure.
 
     Mail.Send is tenant-wide by default. Restrict it to the sender mailbox with an
     Exchange Online application access policy or RBAC for Applications.
@@ -22,7 +23,9 @@
 param(
     [string]$ResourceGroupName = 'sentinel-github',
     [string]$WorkspaceName     = 'github',
-    [string]$PlaybookName      = 'SOAR-001-Reset-Entra-ID-Password'
+    [string]$PlaybookName      = 'SOAR-001-Reset-Entra-ID-Password',
+    [switch]$SkipEntra,
+    [switch]$SkipAzure
 )
 
 $ErrorActionPreference = 'Stop'
@@ -68,6 +71,8 @@ if (-not $principalId) { throw "Playbook '$PlaybookName' not found or has no man
 Write-Host "Playbook managed identity: $principalId"
 
 # 1. Microsoft Graph application permissions
+if ($SkipEntra) { Write-Host 'Skipping Entra steps (Graph permissions, directory role).' }
+else {
 $graphSp = (Invoke-GraphRest GET 'https://graph.microsoft.com/v1.0/servicePrincipals' -QueryParameters "`$filter=appId eq '$graphAppId'", '$select=id,appRoles').value | Select-Object -First 1
 if (-not $graphSp) { throw 'Microsoft Graph service principal not found.' }
 $existing = (Invoke-GraphRest GET "https://graph.microsoft.com/v1.0/servicePrincipals/$principalId/appRoleAssignments").value
@@ -99,8 +104,11 @@ else {
     } | Out-Null
     Write-Host 'Assigned directory role: User Administrator'
 }
+}
 
 # 3. Sentinel Responder for the playbook identity on the workspace
+if ($SkipAzure) { Write-Host 'Skipping Azure RBAC steps.' }
+else {
 $workspaceScope = "/subscriptions/$subscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.OperationalInsights/workspaces/$WorkspaceName"
 az role assignment create --assignee-object-id $principalId --assignee-principal-type ServicePrincipal `
     --role 'Microsoft Sentinel Responder' --scope $workspaceScope --only-show-errors | Out-Null
@@ -113,5 +121,6 @@ az role assignment create --assignee $sentinelAppId --role 'Microsoft Sentinel A
     --scope $rgScope --only-show-errors | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'Failed to assign Microsoft Sentinel Automation Contributor.' }
 Write-Host 'Ensured Microsoft Sentinel Automation Contributor on the resource group.'
+}
 
-Write-Host 'Done. You can now deploy the SOAR-001 automation rule.'
+Write-Host 'Done.'
